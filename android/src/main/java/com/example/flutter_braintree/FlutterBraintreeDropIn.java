@@ -8,11 +8,9 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import android.app.Activity;
 import android.content.Intent;
-
 
 import androidx.annotation.Nullable;
 
@@ -30,53 +28,46 @@ import com.google.android.gms.wallet.WalletConstants;
 import java.io.Serializable;
 import java.util.HashMap;
 
-public class FlutterBraintreeDropIn  implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, Serializable {
-  private static final int DROP_IN_REQUEST_CODE = 0x1337;
+public class FlutterBraintreeDropIn implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, Serializable {
+    private static final int DROP_IN_REQUEST_CODE = 0x1337;
 
-  private Activity activity;
-  private Result activeResult;
+    private Activity activity;
+    private Result activeResult;
+    private MethodChannel channel;
 
+    @Override
+    public void onAttachedToEngine(FlutterPluginBinding binding) {
+        channel = new MethodChannel(binding.getBinaryMessenger(), "flutter_braintree.drop_in");
+        channel.setMethodCallHandler(this);
+    }
 
-  public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "flutter_braintree.drop_in");
-    FlutterBraintreeDropIn plugin = new FlutterBraintreeDropIn();
-    plugin.activity = registrar.activity();
-    registrar.addActivityResultListener(plugin);
-    channel.setMethodCallHandler(plugin);
-  }
+    @Override
+    public void onDetachedFromEngine(FlutterPluginBinding binding) {
+        channel.setMethodCallHandler(null);
+        channel = null;
+    }
 
-  @Override
-  public void onAttachedToEngine(FlutterPluginBinding binding) {
-    final MethodChannel channel = new MethodChannel(binding.getBinaryMessenger(), "flutter_braintree.drop_in");
-    channel.setMethodCallHandler(this);
-  }
+    @Override
+    public void onAttachedToActivity(ActivityPluginBinding binding) {
+        activity = binding.getActivity();
+        binding.addActivityResultListener(this);
+    }
 
-  @Override
-  public void onDetachedFromEngine(FlutterPluginBinding binding) {
+    @Override
+    public void onDetachedFromActivityForConfigChanges() {
+        activity = null;
+    }
 
-  }
+    @Override
+    public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
+        activity = binding.getActivity();
+        binding.addActivityResultListener(this);
+    }
 
-  @Override
-  public void onAttachedToActivity(ActivityPluginBinding binding) {
-    activity = binding.getActivity();
-    binding.addActivityResultListener(this);
-  }
-
-  @Override
-  public void onDetachedFromActivityForConfigChanges() {
-    activity = null;
-  }
-
-  @Override
-  public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
-    activity = binding.getActivity();
-    binding.addActivityResultListener(this);
-  }
-
-  @Override
-  public void onDetachedFromActivity() {
-    activity = null;
-  }
+    @Override
+    public void onDetachedFromActivity() {
+        activity = null;
+    }
 
   @Override
   public void onMethodCall(MethodCall call, Result result) {
